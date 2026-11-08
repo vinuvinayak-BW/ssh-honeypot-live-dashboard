@@ -1,10 +1,131 @@
 # SSH Honeypot with Live Dashboard
 
-A small, runnable SSH honeypot. Attackers connect to **TCP 2222**, every
-credential is rejected, and each attempt is written as one JSON line. A Python
-WebSocket server tails that file, adds geolocation, and streams it to a
-single-page dashboard with a live ticker, summary cards, top usernames, a
-Leaflet world map, all-time country/state rankings, and a Chart.js
+## Start here: run it on Windows
+
+This guide assumes you have never installed a Python project before. Follow
+the steps in order; you do not need Git, Docker, Redis, or a database to open
+the dashboard and try a local SSH login.
+
+### What this project does
+
+Think of it as a **fake SSH login door** that records knocks. The honeypot
+listens for SSH login attempts, saves what the visitor tried, and rejects every
+login. A small web dashboard reads those records and displays counts, a live
+feed, and a map when location data is available. It never gives a visitor a
+real shell or access to your files.
+
+> **Important:** This project records attempted passwords as plain text in
+> `logs/events.jsonl`. Use only made-up passwords while testing. The SSH
+> listener binds to all network interfaces on port 2222, so start with local
+> testing only. Do not forward port 2222 from your router or expose it to the
+> public internet until you understand the security and isolation notes below.
+
+### 1. Download the project
+
+1. Open the [project on GitHub](https://github.com/vinuvinayak-BW/ssh-honeypot-live-dashboard).
+2. Click the green **Code** button, then choose **Download ZIP**.
+3. In File Explorer, right-click the downloaded ZIP and choose **Extract All**.
+4. Move the extracted folder somewhere easy to find, for example
+   `C:\Projects\ssh-honeypot-live-dashboard`.
+
+You can choose a different folder. The commands below work from inside that
+folder.
+
+### 2. Install Python
+
+Install Python 3.10 or newer from the official
+[Python 3.13 Windows download page](https://www.python.org/downloads/release/python-31317/).
+During setup, select **Add python.exe to PATH** if the installer shows that
+option. When setup finishes, close and reopen any PowerShell windows.
+
+### 3. Open PowerShell in the project folder
+
+1. Open the extracted `ssh-honeypot-live-dashboard` folder in File Explorer.
+2. Click the address bar at the top of the window.
+3. Type `powershell` and press **Enter**.
+
+Use a normal PowerShell window, not **Run as administrator**. The honeypot
+refuses to run as Administrator.
+
+### 4. Install the project’s Python packages and create its SSH key
+
+Copy and run these commands in that PowerShell window, one at a time:
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe honeypot.py --init
+```
+
+The first command creates a private Python work area named `.venv` inside the
+project folder. The next two install the packages the project needs. The last
+command creates the SSH host key once. These commands create `state` and
+`logs` folders automatically as the programs run. If `py` is not recognized,
+Python may not be installed correctly; install it, reopen PowerShell, and try
+again.
+
+### 5. Start the two parts of the project
+
+The honeypot and dashboard are separate programs, so keep two PowerShell
+windows open.
+
+**Window 1 — start the fake SSH login door**
+
+Open PowerShell in the project folder again, then run:
+
+```powershell
+.\.venv\Scripts\python.exe honeypot.py
+```
+
+Keep this window open. It should say that it is listening on port 2222.
+
+**Window 2 — start the dashboard**
+
+Open another PowerShell window in the same folder, then run:
+
+```powershell
+.\.venv\Scripts\python.exe server.py
+```
+
+Keep this window open too. Then open [http://127.0.0.1:8080](http://127.0.0.1:8080)
+in your web browser. `127.0.0.1` means “this computer.” The dashboard is for
+your local computer; its web and WebSocket ports are not opened to your network.
+
+### 6. Make one safe test attempt
+
+If Windows has the OpenSSH Client installed, open a **third** PowerShell or
+Command Prompt window and run this as one line:
+
+```text
+ssh -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL -o PreferredAuthentications=password -o PubkeyAuthentication=no demo@127.0.0.1
+```
+
+When SSH asks for a password, enter a made-up test value. The honeypot will
+reject it, and the dashboard should show the login attempt. The password is
+written to the local log in plain text, so never enter a password you use
+anywhere else. If `ssh` is not recognized, install the **OpenSSH Client**
+optional Windows feature or skip this test; the dashboard can still run.
+
+### What the optional warnings mean
+
+* **No GeoLite2 database:** the feed still works, but local IPs will not have
+  map markers or country/state locations. GeoLite2 setup is described later.
+* **Redis is unavailable:** the project uses an in-memory copy of its optional
+  DShield blocklist. The dashboard still works.
+* **No internet:** the dashboard itself can run, but its online map tiles and
+  external DShield feed may be unavailable.
+
+To stop either program, focus its PowerShell window and press **Ctrl+C**.
+
+---
+
+## Project overview
+
+This is a small SSH honeypot. It listens on **TCP port 2222**, rejects all
+credentials, and writes each attempt as one JSON line. A Python WebSocket
+server reads that file and updates a single-page dashboard with a live feed,
+summary cards, top usernames, a map, country/state rankings, and an
 attempts-per-minute graph.
 
 It can also pull **external real-world attack observations** (SANS ISC
@@ -88,7 +209,7 @@ dashboard.
 
 ---
 
-## Quick start (Windows PowerShell)
+## Detailed Windows reference
 
 Use a **normal, non-elevated** terminal. The honeypot refuses to run with an
 Administrator token.
@@ -96,9 +217,8 @@ Administrator token.
 ### Step 1 — Install dependencies
 
 ```powershell
-Set-Location -LiteralPath "C:\Users\ASUS\Music\Project ideas\Dockerized SSH Honeypot with Live Dashboard"
-
-python -m venv .venv
+# Open PowerShell in the project folder first (see "Start here" above).
+py -3 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
@@ -987,7 +1107,7 @@ to the honeypot account.
 Elevated PowerShell, once:
 
 ```powershell
-$Source = "C:\Users\ASUS\Music\Project ideas\Dockerized SSH Honeypot with Live Dashboard"
+$Source = "C:\path\to\ssh-honeypot-live-dashboard"
 $Target = "C:\ssh-honeypot"
 
 robocopy $Source $Target /E /XD .venv logs state __pycache__ /NFL /NDL /NJH /NJS
