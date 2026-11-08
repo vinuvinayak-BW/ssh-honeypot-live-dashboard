@@ -1,0 +1,63 @@
+services:
+  edge:
+    build:
+      context: ./proxy
+    restart: unless-stopped
+    # Host networking lets this container reach the existing services on
+    # 127.0.0.1:8080 and :8765 without publishing either dashboard port.
+    # This Compose deployment is for a Linux Docker Engine host.
+    network_mode: host
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env.proxy}
+      LE_EMAIL: ${LE_EMAIL:?Set LE_EMAIL in .env.proxy}
+      AUTH_MODE: ${AUTH_MODE:-basic}
+    volumes:
+      - ./proxy/auth:/etc/nginx/auth:ro
+      - ./proxy/data/letsencrypt:/etc/letsencrypt
+      - ./proxy/data/www:/var/www/certbot
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+    read_only: true
+    tmpfs:
+      - /etc/nginx/conf.d
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+      - /var/lib/letsencrypt
+      - /var/log/letsencrypt
+
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.15.5
+    profiles: [oauth2]
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      OAUTH2_PROXY_PROVIDER: ${OAUTH2_PROXY_PROVIDER:-oidc}
+      OAUTH2_PROXY_OIDC_ISSUER_URL: ${OAUTH2_PROXY_OIDC_ISSUER_URL:-}
+      OAUTH2_PROXY_CLIENT_ID: ${OAUTH2_PROXY_CLIENT_ID:-}
+      OAUTH2_PROXY_CLIENT_SECRET: ${OAUTH2_PROXY_CLIENT_SECRET:-}
+      OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_PROXY_COOKIE_SECRET:-}
+      OAUTH2_PROXY_EMAIL_DOMAINS: ${OAUTH2_PROXY_EMAIL_DOMAINS:-}
+      OAUTH2_PROXY_REDIRECT_URL: https://${DOMAIN:?Set DOMAIN in .env.proxy}/oauth2/callback
+      OAUTH2_PROXY_HTTP_ADDRESS: 127.0.0.1:4180
+      OAUTH2_PROXY_UPSTREAMS: static://202
+      OAUTH2_PROXY_REVERSE_PROXY: "true"
+      OAUTH2_PROXY_TRUSTED_PROXY_IP: 127.0.0.1/32
+      OAUTH2_PROXY_COOKIE_SECURE: "true"
+      OAUTH2_PROXY_COOKIE_SAMESITE: lax
+      OAUTH2_PROXY_CODE_CHALLENGE_METHOD: S256
+      OAUTH2_PROXY_SCOPE: ${OAUTH2_PROXY_SCOPE:-openid email profile}
+      OAUTH2_PROXY_SKIP_PROVIDER_BUTTON: "true"
+      OAUTH2_PROXY_SET_XAUTHREQUEST: "true"
+      OAUTH2_PROXY_PASS_ACCESS_TOKEN: "false"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]

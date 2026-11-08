@@ -1,0 +1,45 @@
+[Unit]
+Description=SSH honeypot dashboard (WebSocket + static page on localhost)
+After=network.target ssh-honeypot.service
+Wants=ssh-honeypot.service
+
+[Service]
+Type=simple
+User=honeypot
+Group=honeypot
+WorkingDirectory=/opt/ssh-honeypot
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/ssh-honeypot/.venv/bin/python /opt/ssh-honeypot/server.py \
+    --log /var/log/ssh-honeypot/events.jsonl \
+    --ws-host 127.0.0.1 --ws-port 8765 \
+    --http-host 127.0.0.1 --http-port 8080
+Restart=on-failure
+RestartSec=3
+
+# The dashboard only reads the log and serves static files.  It has no
+# business writing anywhere on the host.
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ReadOnlyPaths=/opt/ssh-honeypot /var/log/ssh-honeypot
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+UMask=0077
+LimitNOFILE=2048
+TasksMax=128
+
+[Install]
+WantedBy=multi-user.target

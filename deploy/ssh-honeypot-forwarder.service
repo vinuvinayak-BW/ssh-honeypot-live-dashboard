@@ -1,0 +1,52 @@
+[Unit]
+Description=SSH honeypot event forwarder (TLS to Elasticsearch or ClickHouse)
+Documentation=file:/opt/ssh-honeypot/README.md
+After=network-online.target ssh-honeypot.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=honeypot
+Group=honeypot
+WorkingDirectory=/opt/ssh-honeypot
+Environment=PYTHONDONTWRITEBYTECODE=1
+# HONEYPOT_ES_API_KEY=... or HONEYPOT_ES_USER=.../HONEYPOT_ES_PASSWORD=...
+# HONEYPOT_CH_USER=.../HONEYPOT_CH_PASSWORD=... for ClickHouse.
+EnvironmentFile=-/etc/ssh-honeypot/forwarder.env
+ExecStart=/opt/ssh-honeypot/.venv/bin/python /opt/ssh-honeypot/forwarder.py \
+    --backend elasticsearch \
+    --url https://es.example.com:9200 \
+    --index-prefix ssh-honeypot \
+    --log /var/log/ssh-honeypot/events.jsonl \
+    --checkpoint /var/lib/ssh-honeypot/forwarder.json
+Restart=on-failure
+RestartSec=5
+
+# The forwarder only reads the honeypot log and writes its checkpoint.
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+StateDirectory=ssh-honeypot
+ReadOnlyPaths=/opt/ssh-honeypot /var/log/ssh-honeypot
+ReadWritePaths=/var/lib/ssh-honeypot
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+UMask=0077
+LimitNOFILE=1024
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target

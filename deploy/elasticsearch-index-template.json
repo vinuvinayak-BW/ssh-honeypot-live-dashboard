@@ -1,0 +1,60 @@
+{
+  "_meta": {
+    "description": "Index template for SSH honeypot events shipped by forwarder.py"
+  },
+  "index_patterns": ["ssh-honeypot-*"],
+  "priority": 200,
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 1,
+      "refresh_interval": "5s",
+      "index.mapping.total_fields.limit": 200
+    },
+    "mappings": {
+      "dynamic": true,
+      "properties": {
+        "@timestamp": { "type": "date" },
+        "ts": { "type": "date" },
+        "ingested_at": { "type": "date" },
+        "id": { "type": "keyword" },
+        "event": { "type": "keyword" },
+        "connection_id": { "type": "keyword" },
+        "src_ip": { "type": "ip" },
+        "src_port": { "type": "integer" },
+        "client_version": { "type": "keyword" },
+        "username": { "type": "keyword" },
+        "auth_type": { "type": "keyword" },
+        "password": { "type": "keyword" },
+        "key_type": { "type": "keyword" },
+        "key_bits": { "type": "integer" },
+        "key_fingerprint": { "type": "keyword" },
+        "external": { "type": "boolean" },
+        "dshield_listed": { "type": "boolean" },
+        "source_id": { "type": "keyword" },
+        "source_name": { "type": "keyword" },
+        "source_url": { "type": "keyword" },
+        "external_id": { "type": "keyword" },
+        "reports": { "type": "long" },
+        "targets": { "type": "long" },
+        "rank": { "type": "long" },
+        "severity": { "type": "keyword" },
+        "category": { "type": "keyword" },
+        "first_seen": { "type": "keyword" },
+        "last_seen": { "type": "keyword" },
+        "geo_status": { "type": "keyword" },
+        "geo": {
+          "properties": {
+            "lat": { "type": "double" },
+            "lon": { "type": "double" },
+            "city": { "type": "keyword" },
+            "country": { "type": "keyword" },
+            "country_code": { "type": "keyword" },
+            "region": { "type": "keyword" },
+            "source": { "type": "keyword" }
+          }
+        }
+      }
+    }
+  }
+}

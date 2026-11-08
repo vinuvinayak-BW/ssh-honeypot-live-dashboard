@@ -1,0 +1,38 @@
+{
+  "_note": "Pluggable external attack sources. Set enabled=true to activate a source. Google and Instagram do not publish SSH attack telemetry; use json_feed or webhook with your own export. See README.md, 'Real-world monitoring'.",
+  "sources": [
+    {
+      "id": "dshield-ssh",
+      "type": "dshield",
+      "name": "SANS ISC DShield SSH",
+      "enabled": true,
+      "feed": "openbl_ssh",
+      "interval": 300,
+      "limit": 25
+    },
+    {
+      "id": "json-example",
+      "type": "json_feed",
+      "name": "Example JSON export",
+      "enabled": false,
+      "url": "https://example.com/attacks.json",
+      "interval": 300,
+      "records_path": "events",
+      "mapping": {
+        "src_ip": "ip",
+        "ts": "timestamp",
+        "username": "user",
+        "auth_type": "auth_type",
+        "password": "password",
+        "client_version": "client"
+      }
+    },
+    {
+      "id": "webhook",
+      "type": "webhook",
+      "name": "Operator webhook",
+      "enabled": true,
+      "token_env": "HONEYPOT_INGEST_TOKEN"
+    }
+  ]
+}

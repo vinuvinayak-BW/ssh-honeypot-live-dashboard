@@ -1,0 +1,21 @@
+# Ignore runtime state, secrets, and dependencies.
+.venv/
+__pycache__/
+*.py[cod]
+
+# Honeypot output contains plaintext attempted passwords. Never commit it.
+logs/
+state/
+
+# Optional local MaxMind database (large + licensed).
+GeoLite2-City.mmdb
+
+# Reverse-proxy secrets and issued certificates.
+.env.proxy
+proxy/auth/.htpasswd
+proxy/data/letsencrypt/
+proxy/data/www/
+
+# Local scratch files and UI captures.
+/itemps/
+/testwrite.txt

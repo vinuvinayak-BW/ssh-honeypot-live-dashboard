@@ -1,0 +1,4 @@
+paramiko>=3.4,<4
+websockets>=12,<14
+geoip2>=4.8,<5
+redis>=5,<6
